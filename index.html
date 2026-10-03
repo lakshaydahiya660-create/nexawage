@@ -2116,6 +2116,34 @@ function render(){
 // ══════════════════════════════════════════════════════
 //   LOGIN
 // ══════════════════════════════════════════════════════
+// ── Hidden Super Admin portal (Easter Egg) ──────────────
+// Super button login screen par tab hi render hota hai jab
+// ST.loginMode==='super_admin'. Unlock: logo ke "Wage" par 3 quick
+// clicks (mobile) ya 'W' key (desktop, input mein typing ke time nahi).
+let _suClicks=0,_suTimer=null;
+function unlockSuperAdmin(force){
+  if(ST.page!=='login'||ST.authMode!=='login'||ST.loginMode==='super_admin')return;
+  if(force!==true){
+    _suClicks++;
+    clearTimeout(_suTimer);
+    _suTimer=setTimeout(()=>{_suClicks=0},1500);
+    if(_suClicks<3)return;
+  }
+  _suClicks=0;clearTimeout(_suTimer);
+  ST.loginMode='super_admin';
+  toast('Master Console Unlocked','success');
+  render();
+}
+window.addEventListener('keydown',function(e){
+  if(e.key!=='w'&&e.key!=='W')return;
+  if(e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
+  if(ST.page!=='login'||ST.authMode!=='login')return;
+  const el=e.target||document.activeElement;
+  const tag=((el&&el.tagName)||'').toUpperCase();
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(el&&el.isContentEditable))return;
+  unlockSuperAdmin(true);
+});
+
 function renderLogin(){
   if(ST.authMode==='register') return renderRegister();
   if(ST.authMode==='verify') return renderVerify();
@@ -2124,12 +2152,12 @@ function renderLogin(){
   // in Supabase Auth (see nexawage_supabase_integration.js §3 in the guide).
   return`<div class="login-wrap fade">
     <div class="login-card">
-      <div class="login-mark mb3">Nexa<span>Wage</span></div>
+      <div class="login-mark mb3">Nexa<span onclick="unlockSuperAdmin()" style="cursor:default;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent">Wage</span></div>
       <div style="text-align:center;font-size:11px;color:var(--tx3);letter-spacing:.6px;margin-bottom:18px">ENTERPRISE GLOBAL SAAS PLATFORM</div>
       <div class="switcher" style="display:flex;gap:3px">
         <button class="sw${m==='admin'?' active':''}" onclick="ST.loginMode='admin';render()">${t('adminLabel')}</button>
         <button class="sw${m==='employee'?' active':''}" onclick="ST.loginMode='employee';render()">${t('employeeLabel')}</button>
-        <button class="sw${m==='super_admin'?' active':''}" onclick="ST.loginMode='super_admin';render()">🔐 Super</button>
+        ${m==='super_admin'?`<button class="sw active" onclick="ST.loginMode='super_admin';render()">🔐 Super</button>`:''}
       </div>
       ${m==='super_admin'?`<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-left:3px solid var(--ac);border-radius:var(--rs);padding:8px 11px;font-size:11.5px;color:var(--ac2);margin-bottom:14px">🔐 Restricted — Master Console access only</div>`:''}
       <div class="fg"><label class="fl">${t('emailLabel')}</label><input class="fi" id="LE" type="email" value="" placeholder="name@company.com" autocomplete="username"/></div>
@@ -4729,7 +4757,7 @@ async function changePassword(){
 async function doLogout(){
   await sb.auth.signOut();
   SESSION.user=null;SESSION.profile=null;SESSION.employee=null;
-  ST.user=null;ST.page='login';ST.sheet=null;ST.clockedIn=false;ST.clockInTime=null;ST.clockElapsed=0;
+  ST.user=null;ST.page='login';ST.loginMode='admin';ST.sheet=null;ST.clockedIn=false;ST.clockInTime=null;ST.clockElapsed=0;
   if(clockTmr)clearInterval(clockTmr);
   // SUPABASE: reset every cached fetch so the next login (possibly a
   // different role/employee in the same tab) can't briefly render
